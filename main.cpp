@@ -1,6 +1,5 @@
 #include <cstdio>
 #include "mem.h"
-#include "Vector.h"
 
 // ac_client.exe+637E9 dec esi instruction
 // ac_client.exe+637E9 - FF 0E                
