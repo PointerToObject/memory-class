@@ -7,9 +7,13 @@
 extern DWORD globalProcID;
 extern HANDLE hProcess;
 extern const wchar_t* moduleNameGlobal;
+//	GLOBALS	//
+
+// SECOND HANDLE
 extern HANDLE SecondHandle;
 extern DWORD SecondProcID;
-//	GLOBALS	//
+extern bool fwReason;
+// SECOND HANDLE
 
 
 DWORD GetProcID(const wchar_t* name);
@@ -26,15 +30,26 @@ uintptr_t AttatchToModule(const wchar_t* moduleName);
 
 void AttatchToProcess();
 
-DWORD PID(const wchar_t* processName);
+DWORD Attach2(const wchar_t* processName);
 
 uintptr_t RPC(uintptr_t ptr, std::vector<unsigned int> offsets);
+
+void Patch(BYTE* dst, BYTE* src, unsigned int size);
+
+void Nop(BYTE* dst, unsigned int size);
 
 template<class T>
 T Read(uintptr_t Address)
 {
 	T buf;
-	ReadProcessMemory(hProcess, (BYTE*)Address, &buf, sizeof(buf), 0);
+	if (fwReason)
+	{
+		ReadProcessMemory(hProcess, (BYTE*)Address, &buf, sizeof(buf), 0);
+	}
+	else
+	{
+		ReadProcessMemory(SecondHandle, (BYTE*)Address, &buf, sizeof(buf), 0);
+	}
 	return buf;
 }
 
@@ -42,5 +57,12 @@ template<class T>
 void Write(uintptr_t Address, T buffer)
 {
 	T buf = buffer;
-	WriteProcessMemory(hProcess, (BYTE*)Address, &buf, sizeof(buf), 0);
+	if (fwReason)
+	{
+		WriteProcessMemory(hProcess, (BYTE*)Address, &buf, sizeof(buf), 0);
+	}
+	else
+	{
+		WriteProcessMemory(SecondHandle, (BYTE*)Address, &buf, sizeof(buf), 0);
+	}
 }
