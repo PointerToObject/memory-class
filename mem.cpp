@@ -4,8 +4,11 @@ DWORD globalProcID;
 HANDLE hProcess;
 const wchar_t* moduleNameGlobal;
 
+// TESTING
 HANDLE SecondHandle;
 DWORD SecondProcID;
+bool fwReason = false;
+// TESTING
 
 DWORD GetProcID(const wchar_t* name)
 {
@@ -60,6 +63,7 @@ void Attach(const wchar_t* processName, const wchar_t* moduleName)
 	hProcess = hProc;
 	globalProcID = procID;
 	moduleNameGlobal = moduleName;
+	fwReason = true;
 }
 
 uintptr_t AttachModuleBase()
@@ -69,19 +73,46 @@ uintptr_t AttachModuleBase()
 
 uintptr_t AttatchToModule(const wchar_t* moduleName)
 {
-	return GetModuleBase(moduleName, globalProcID);
-}
-
-DWORD PID(const wchar_t* processName)
-{
-	DWORD procID = GetProcID(processName);
-	SecondProcID = procID;
-	return procID;
+	if (fwReason)
+	{
+		return GetModuleBase(moduleName, globalProcID);
+	}
+	else
+	{
+		return GetModuleBase(moduleName, SecondProcID);
+	}
 }
 
 void AttatchToProcess()
 {
 	HANDLE hProc = OpenProcess(PROCESS_ALL_ACCESS, NULL, SecondProcID);
+	SecondHandle = hProc;
+	fwReason = false;
+}
+
+DWORD Attach2(const wchar_t* processName)
+{
+	DWORD procID = GetProcID(processName);
+	SecondProcID = procID;
+	AttatchToProcess();
+	return procID;
+}
+
+void Patch(BYTE* dst, BYTE* src, unsigned int size) 
+{
+	DWORD oldprotect;
+	VirtualProtectEx(hProcess, dst, size, PAGE_EXECUTE_READWRITE, &oldprotect);
+	WriteProcessMemory(hProcess, dst, src, size, nullptr);
+	VirtualProtectEx(hProcess, dst, size, oldprotect, &oldprotect);
+}
+
+void Nop(BYTE* dst, unsigned int size) 
+{
+	BYTE* nopArray = new BYTE[size];
+	memset(nopArray, 0x90, size);
+
+	Patch(dst, nopArray, size);
+	delete[] nopArray;
 }
 
 uintptr_t RPC(uintptr_t ptr, std::vector<unsigned int> offsets)
@@ -89,7 +120,14 @@ uintptr_t RPC(uintptr_t ptr, std::vector<unsigned int> offsets)
 	uintptr_t addr = ptr;
 	for (unsigned int i = 0; i < offsets.size(); ++i)
 	{
-		ReadProcessMemory(hProcess, (BYTE*)addr, &addr, sizeof(addr), 0);
+		if (fwReason)
+		{
+			ReadProcessMemory(hProcess, (BYTE*)addr, &addr, sizeof(addr), 0);
+		}
+		else
+		{
+			ReadProcessMemory(SecondHandle, (BYTE*)addr, &addr, sizeof(addr), 0);
+		}
 		addr += offsets[i];
 	}
 	return addr;
