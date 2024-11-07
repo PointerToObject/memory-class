@@ -56,13 +56,12 @@ T Read(uintptr_t Address)
 template<class T>
 void Write(uintptr_t Address, T buffer)
 {
-	T buf = buffer;
 	if (fwReason)
 	{
-		WriteProcessMemory(hProcess, (BYTE*)Address, &buf, sizeof(buf), 0);
+		WriteProcessMemory(hProcess, (BYTE*)Address, &buffer, sizeof(buffer), 0);
 	}
 	else
 	{
-		WriteProcessMemory(SecondHandle, (BYTE*)Address, &buf, sizeof(buf), 0);
+		WriteProcessMemory(SecondHandle, (BYTE*)Address, &buffer, sizeof(buffer), 0);
 	}
 }
