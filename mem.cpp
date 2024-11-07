@@ -83,19 +83,19 @@ uintptr_t AttatchToModule(const wchar_t* moduleName)
 	}
 }
 
-void AttatchToProcess()
-{
-	HANDLE hProc = OpenProcess(PROCESS_ALL_ACCESS, NULL, SecondProcID);
-	SecondHandle = hProc;
-	fwReason = false;
-}
-
 DWORD Attach2(const wchar_t* processName)
 {
 	DWORD procID = GetProcID(processName);
 	SecondProcID = procID;
 	AttatchToProcess();
 	return procID;
+}
+
+void AttatchToProcess()
+{
+	HANDLE hProc = OpenProcess(PROCESS_ALL_ACCESS, NULL, SecondProcID);
+	SecondHandle = hProc;
+	fwReason = false;
 }
 
 void Patch(BYTE* dst, BYTE* src, unsigned int size) 
